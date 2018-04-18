@@ -4,7 +4,7 @@ open System
 open System.IO
 open Fake
 
-let app = "./app" 
+let app = "./app"
 
 let platformTool tool winTool =
   let tool = if isUnix then tool else winTool
@@ -13,6 +13,7 @@ let platformTool tool winTool =
   |> function Some t -> t | _ -> failwithf "%s not found" tool
 
 let nodeTool = platformTool "node" "node.exe"
+let npmTool = platformTool "npm" "npm.cmd"
 
 let mutable dotnetCli = "dotnet"
 
@@ -24,20 +25,20 @@ let run cmd args workingDir =
       info.Arguments <- args) TimeSpan.MaxValue
   if result <> 0 then failwithf "'%s %s' failed" cmd args
 
-let delete file = 
-    if File.Exists(file) 
+let delete file =
+    if File.Exists(file)
     then DeleteFile file
-    else () 
+    else ()
 
-let cleanBundles() = 
-    Path.Combine("dist", "bundle.js") 
-        |> Path.GetFullPath 
-        |> delete
-    Path.Combine("dist", "bundle.js.map") 
+let cleanBundles() =
+    Path.Combine("dist", "bundle.js")
         |> Path.GetFullPath
-        |> delete 
+        |> delete
+    Path.Combine("dist", "bundle.js.map")
+        |> Path.GetFullPath
+        |> delete
 
-let cleanCacheDirs() = 
+let cleanCacheDirs() =
     // clean libraries
     [ "Fable.React.Flatpickr" ]
     |> List.map (fun lib -> "src" </> lib)
@@ -52,8 +53,8 @@ Target "Clean" <| fun _ ->
 Target "InstallNpmPackages" (fun _ ->
   printfn "Node version:"
   run nodeTool "--version" __SOURCE_DIRECTORY__
-  run "npm" "--version" __SOURCE_DIRECTORY__
-  run "npm" "install" __SOURCE_DIRECTORY__
+  run npmTool "--version" __SOURCE_DIRECTORY__
+  run npmTool "install" __SOURCE_DIRECTORY__
 )
 
 Target "Restore" <| fun _ ->
@@ -71,9 +72,9 @@ let publish projectPath = fun () ->
         match environVarOrNone "NUGET_KEY" with
         | Some nugetKey -> nugetKey
         | None -> failwith "The Nuget API key must be set in a NUGET_KEY environmental variable"
-    let nupkg = 
-        Directory.GetFiles(projectPath </> "bin" </> "Release") 
-        |> Seq.head 
+    let nupkg =
+        Directory.GetFiles(projectPath </> "bin" </> "Release")
+        |> Seq.head
         |> Path.GetFullPath
 
     let pushCmd = sprintf "nuget push %s -s nuget.org -k %s" nupkg nugetKey
